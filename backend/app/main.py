@@ -2,13 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import auth, budgets, expenses, revenues, seasons, teams, organizations, quick_actions, transparency, imports
 
-# Initialize database on startup
-try:
-    from app.startup import init_db
-    init_db()
-except Exception as e:
-    print(f"Database initialization note: {e}")
-
 app = FastAPI(
     title="Youth Sports Budget API",
     description="Budgeting and financial management for youth sports organizations",
@@ -43,6 +36,18 @@ app.include_router(revenues.router, prefix="/api/v1/revenues", tags=["Revenues"]
 app.include_router(quick_actions.router, prefix="/api/v1/quick", tags=["Quick Actions"])
 app.include_router(transparency.router, prefix="/api/v1/transparency", tags=["Financial Transparency"])
 app.include_router(imports.router, prefix="/api/v1/import", tags=["Data Import"])
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on application startup"""
+    try:
+        from app.database import engine, Base
+        from app.models import *
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️ Database initialization note: {e}")
 
 
 @app.get("/")
