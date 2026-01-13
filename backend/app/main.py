@@ -16,9 +16,10 @@ allowed_origins = os.getenv(
     "http://localhost:3000,http://localhost:5174,http://localhost:5173,http://localhost:3001"
 ).split(",")
 
+# Allow all origins for Railway deployment (restrict in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins + ["*"],  # Allow all for now, restrict in production
+    allow_origins=["*"],  # Allow all for Railway - update with your Netlify URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
