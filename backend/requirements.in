@@ -1,0 +1,7 @@
+# This file helps Railway detect Python project
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+email-validator
+python-dotenv

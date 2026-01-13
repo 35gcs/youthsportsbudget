@@ -3,9 +3,14 @@ nixPkgs = ["python39", "pip"]
 
 [phases.install]
 cmds = [
-    "pip install -r requirements.txt",
-    "python app/db_init.py"
+    "pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "python app/db_init.py || true"
 ]
 
 [start]
-cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+cmd = "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
