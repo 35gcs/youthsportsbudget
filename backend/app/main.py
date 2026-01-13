@@ -2,6 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import auth, budgets, expenses, revenues, seasons, teams, organizations, quick_actions, transparency, imports
 
+# Initialize database on startup
+try:
+    from app.startup import init_db
+    init_db()
+except Exception as e:
+    print(f"Database initialization note: {e}")
+
 app = FastAPI(
     title="Youth Sports Budget API",
     description="Budgeting and financial management for youth sports organizations",
