@@ -1,0 +1,48 @@
+🚀 NETLIFY DROP DEPLOYMENT INSTRUCTIONS
+========================================
+
+STEP 1: EXTRACT THE ZIP FILE
+-----------------------------
+Extract "youth-sports-budget-deploy.zip" to a folder on your computer.
+
+STEP 2: GO TO NETLIFY DROP
+---------------------------
+1. Open your browser
+2. Go to: https://app.netlify.com/drop
+3. (You may need to sign up/login to Netlify - it's free!)
+
+STEP 3: DRAG AND DROP
+----------------------
+1. Navigate to the extracted folder
+2. Find the "dist" folder inside "youth-sports-budget/frontend/"
+3. Drag the ENTIRE "dist" folder onto the Netlify Drop page
+4. Wait a few seconds...
+
+STEP 4: YOUR SITE IS LIVE! 🎉
+-------------------------------
+Netlify will give you a URL like: https://random-name-123.netlify.app
+Your frontend is now live!
+
+IMPORTANT: BACKEND SETUP
+-------------------------
+⚠️ The frontend needs a backend to work fully!
+
+Your backend (FastAPI) needs to be deployed separately:
+- Railway: https://railway.app (easiest)
+- Render: https://render.com
+- Fly.io: https://fly.io
+
+After backend is deployed:
+1. Get your backend URL
+2. In Netlify: Site Settings → Environment Variables
+3. Add: VITE_API_URL = https://your-backend-url.com/api/v1
+4. Redeploy
+
+WHAT'S IN THE ZIP:
+------------------
+✓ frontend/dist/ - Production build (ready for Netlify Drop)
+✓ netlify.toml - Netlify configuration
+✓ README_DEPLOY.md - Detailed deployment guide
+✓ DEPLOYMENT.md - Full deployment instructions
+
+That's it! Just drag the "dist" folder to Netlify Drop! 🚀

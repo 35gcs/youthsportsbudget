@@ -1,0 +1,11 @@
+# Netlify configuration for Youth Sports Budget Manager
+
+[build]
+  publish = "frontend/dist"
+  command = "cd frontend && npm install && npm run build"
+
+# SPA fallback - redirect all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
