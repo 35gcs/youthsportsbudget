@@ -25,6 +25,9 @@ export default function Import() {
     },
   });
 
+  // Calculate upload progress (simplified - shows file size)
+  const fileSizeMB = selectedFile ? (selectedFile.size / (1024 * 1024)).toFixed(2) : '0';
+
   const downloadTemplate = async (type: ImportType) => {
     try {
       const response = await fetch(`/api/v1/import/templates/${type}`);
@@ -165,9 +168,16 @@ export default function Import() {
             <button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-              className="w-full px-6 py-3 bg-sports-primary hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-6 py-3 bg-sports-primary hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {importMutation.isPending ? 'Importing...' : 'Import Data'}
+              {importMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Importing... ({fileSizeMB} MB)</span>
+                </>
+              ) : (
+                <span>Import Data</span>
+              )}
             </button>
           </div>
         </div>

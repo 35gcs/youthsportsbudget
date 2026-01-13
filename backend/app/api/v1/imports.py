@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import insert
 from typing import List
 import csv
 import io
@@ -9,6 +10,9 @@ from app.models import Organization, Season, Team, Expense, Revenue, ExpenseCate
 from app.schemas import OrganizationCreate, SeasonCreate, TeamCreate, ExpenseCreate, RevenueCreate
 
 router = APIRouter()
+
+# Batch size for bulk inserts (increased for better performance)
+BATCH_SIZE = 500
 
 
 def parse_date(date_str: str) -> datetime.date:
@@ -73,7 +77,7 @@ async def import_seasons(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Import seasons from CSV"""
+    """Import seasons from CSV using bulk insert for performance"""
     if not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -86,6 +90,7 @@ async def import_seasons(
     
     created = []
     errors = []
+    batch = []
     
     for row_num, row in enumerate(csv_reader, start=2):
         try:
@@ -93,21 +98,28 @@ async def import_seasons(
             season_type = SeasonType(season_type_str) if season_type_str else SeasonType.FALL
             
             org_id = row.get('organization_id', '').strip() or None
-            season = Season(
-                name=row.get('name', '').strip(),
-                season_type=season_type,
-                year=int(row.get('year', datetime.now().year)),
-                start_date=parse_date(row.get('start_date', '')),
-                end_date=parse_date(row.get('end_date', '')),
-                is_active=row.get('is_active', 'true').lower() == 'true',
-                organization_id=org_id
-            )
-            db.add(season)
-            created.append(season.name)
+            batch.append({
+                'name': row.get('name', '').strip(),
+                'season_type': season_type,  # Use enum object, SQLAlchemy will handle conversion
+                'year': int(row.get('year', datetime.now().year)),
+                'start_date': parse_date(row.get('start_date', '')),
+                'end_date': parse_date(row.get('end_date', '')),
+                'is_active': row.get('is_active', 'true').lower() == 'true',
+                'organization_id': org_id
+            })
+            created.append(row.get('name', '').strip())
+            
+            # Commit in batches for better performance
+            if len(batch) >= BATCH_SIZE:
+                db.execute(insert(Season).values(batch))
+                db.commit()
+                batch = []
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
     
-    if created:
+    # Commit remaining items
+    if batch:
+        db.execute(insert(Season).values(batch))
         db.commit()
     
     return {
@@ -122,7 +134,7 @@ async def import_teams(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Import teams from CSV"""
+    """Import teams from CSV using bulk insert for performance"""
     if not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -135,6 +147,7 @@ async def import_teams(
     
     created = []
     errors = []
+    batch = []
     
     for row_num, row in enumerate(csv_reader, start=2):
         try:
@@ -144,22 +157,29 @@ async def import_teams(
                 errors.append(f"Row {row_num}: season_id is required")
                 continue
             
-            team = Team(
-                name=row.get('name', '').strip(),
-                age_group=row.get('age_group', '').strip(),
-                sport=row.get('sport', '').strip(),
-                gender=row.get('gender', '').strip() or None,
-                max_players=int(row.get('max_players', 20)),
-                registration_fee=float(row.get('registration_fee', 0)),
-                season_id=season_id,
-                coach_id=row.get('coach_id', '').strip() or None
-            )
-            db.add(team)
-            created.append(team.name)
+            batch.append({
+                'name': row.get('name', '').strip(),
+                'age_group': row.get('age_group', '').strip(),
+                'sport': row.get('sport', '').strip(),
+                'gender': row.get('gender', '').strip() or None,
+                'max_players': int(row.get('max_players', 20)),
+                'registration_fee': float(row.get('registration_fee', 0)),
+                'season_id': season_id,
+                'coach_id': row.get('coach_id', '').strip() or None
+            })
+            created.append(row.get('name', '').strip())
+            
+            # Commit in batches for better performance
+            if len(batch) >= BATCH_SIZE:
+                db.execute(insert(Team).values(batch))
+                db.commit()
+                batch = []
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
     
-    if created:
+    # Commit remaining items
+    if batch:
+        db.execute(insert(Team).values(batch))
         db.commit()
     
     return {
@@ -174,7 +194,7 @@ async def import_expenses(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Import expenses from CSV"""
+    """Import expenses from CSV using bulk insert for performance"""
     if not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -187,6 +207,7 @@ async def import_expenses(
     
     created = []
     errors = []
+    batch = []
     
     for row_num, row in enumerate(csv_reader, start=2):
         try:
@@ -196,24 +217,31 @@ async def import_expenses(
             except ValueError:
                 category = ExpenseCategory.OTHER
             
-            expense = Expense(
-                season_id=row.get('season_id', '').strip(),
-                team_id=row.get('team_id', '').strip() or None,
-                category=category,
-                description=row.get('description', '').strip(),
-                amount=float(row.get('amount', 0)),
-                vendor=row.get('vendor', '').strip() or None,
-                receipt_number=row.get('receipt_number', '').strip() or None,
-                payment_date=parse_date(row.get('payment_date', '')),
-                notes=row.get('notes', '').strip() or None,
-                created_by="import"
-            )
-            db.add(expense)
-            created.append(expense.description)
+            batch.append({
+                'season_id': row.get('season_id', '').strip(),
+                'team_id': row.get('team_id', '').strip() or None,
+                'category': category,  # Use enum object, SQLAlchemy will handle conversion
+                'description': row.get('description', '').strip(),
+                'amount': float(row.get('amount', 0)),
+                'vendor': row.get('vendor', '').strip() or None,
+                'receipt_number': row.get('receipt_number', '').strip() or None,
+                'payment_date': parse_date(row.get('payment_date', '')),
+                'notes': row.get('notes', '').strip() or None,
+                'created_by': row.get('created_by', '').strip() or "anonymous"  # Match regular create endpoint
+            })
+            created.append(row.get('description', '').strip())
+            
+            # Commit in batches for better performance
+            if len(batch) >= BATCH_SIZE:
+                db.execute(insert(Expense).values(batch))
+                db.commit()
+                batch = []
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
     
-    if created:
+    # Commit remaining items
+    if batch:
+        db.execute(insert(Expense).values(batch))
         db.commit()
     
     return {
@@ -228,7 +256,7 @@ async def import_revenues(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Import revenues from CSV"""
+    """Import revenues from CSV using bulk insert for performance"""
     if not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -241,6 +269,7 @@ async def import_revenues(
     
     created = []
     errors = []
+    batch = []
     
     for row_num, row in enumerate(csv_reader, start=2):
         try:
@@ -250,23 +279,30 @@ async def import_revenues(
             except ValueError:
                 category = RevenueCategory.OTHER
             
-            revenue = Revenue(
-                season_id=row.get('season_id', '').strip(),
-                team_id=row.get('team_id', '').strip() or None,
-                category=category,
-                description=row.get('description', '').strip(),
-                amount=float(row.get('amount', 0)),
-                source=row.get('source', '').strip() or None,
-                payment_date=parse_date(row.get('payment_date', '')),
-                notes=row.get('notes', '').strip() or None,
-                created_by="import"
-            )
-            db.add(revenue)
-            created.append(revenue.description)
+            batch.append({
+                'season_id': row.get('season_id', '').strip(),
+                'team_id': row.get('team_id', '').strip() or None,
+                'category': category,  # Use enum object, SQLAlchemy will handle conversion
+                'description': row.get('description', '').strip(),
+                'amount': float(row.get('amount', 0)),
+                'source': row.get('source', '').strip() or None,
+                'payment_date': parse_date(row.get('payment_date', '')),
+                'notes': row.get('notes', '').strip() or None,
+                'created_by': row.get('created_by', '').strip() or "anonymous"  # Match regular create endpoint
+            })
+            created.append(row.get('description', '').strip())
+            
+            # Commit in batches for better performance
+            if len(batch) >= BATCH_SIZE:
+                db.execute(insert(Revenue).values(batch))
+                db.commit()
+                batch = []
         except Exception as e:
             errors.append(f"Row {row_num}: {str(e)}")
     
-    if created:
+    # Commit remaining items
+    if batch:
+        db.execute(insert(Revenue).values(batch))
         db.commit()
     
     return {
