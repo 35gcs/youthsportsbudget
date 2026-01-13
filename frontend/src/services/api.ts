@@ -18,8 +18,7 @@ import type {
 } from '../types';
 
 const api = axios.create({
-  baseURL: (import.meta.env as any)?.VITE_API_URL || '/api/v1',
-  headers: {
+  baseURL: (import.meta.env as any)?.VITE_API_URL || 'https://testingbudget-production.up.railway.app/api/v1',  headers: {
     'Content-Type': 'application/json',
   },
 });
