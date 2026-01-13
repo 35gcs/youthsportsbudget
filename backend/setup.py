@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="youth-sports-budget",
     version="1.0.0",
+    description="Budgeting and financial management for youth sports organizations",
     packages=find_packages(),
     install_requires=[
         "fastapi==0.104.1",
